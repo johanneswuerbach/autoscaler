@@ -320,10 +320,18 @@ func TestIncreaseSize(t *testing.T) {
 
 	provider.Refresh()
 
-	err := asgs[0].IncreaseSize(1)
+	initialSize, err := asgs[0].TargetSize()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, initialSize)
+
+	err = asgs[0].IncreaseSize(1)
 	assert.NoError(t, err)
 	service.AssertNumberOfCalls(t, "SetDesiredCapacity", 1)
 	service.AssertNumberOfCalls(t, "DescribeAutoScalingGroupsPages", 1)
+
+	newSize, err := asgs[0].TargetSize()
+	assert.NoError(t, err)
+	assert.Equal(t, 3, newSize)
 }
 
 func TestBelongs(t *testing.T) {
@@ -393,15 +401,23 @@ func TestDeleteNodes(t *testing.T) {
 
 	provider.Refresh()
 
+	initialSize, err := asgs[0].TargetSize()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, initialSize)
+
 	node := &apiv1.Node{
 		Spec: apiv1.NodeSpec{
 			ProviderID: "aws:///us-east-1a/test-instance-id",
 		},
 	}
-	err := asgs[0].DeleteNodes([]*apiv1.Node{node})
+	err = asgs[0].DeleteNodes([]*apiv1.Node{node})
 	assert.NoError(t, err)
 	service.AssertNumberOfCalls(t, "TerminateInstanceInAutoScalingGroup", 1)
 	service.AssertNumberOfCalls(t, "DescribeAutoScalingGroupsPages", 1)
+
+	newSize, err := asgs[0].TargetSize()
+	assert.NoError(t, err)
+	assert.Equal(t, 1, newSize)
 }
 
 func TestGetResourceLimiter(t *testing.T) {
